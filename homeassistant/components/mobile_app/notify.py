@@ -148,41 +148,53 @@ class MobileAppNotificationService(BaseNotificationService):
 
         target_data["registration_info"] = reg_info
 
-        try:
-            async with async_timeout.timeout(10):
-                response = await async_get_clientsession(self._hass).post(
-                    push_url, json=target_data
-                )
-                result = await response.json()
+        total_attemps = 2
 
-            if response.status in (
-                HTTPStatus.OK,
-                HTTPStatus.CREATED,
-                HTTPStatus.ACCEPTED,
-            ):
-                log_rate_limits(self.hass, entry_data[ATTR_DEVICE_NAME], result)
-                return
+        attemp = 1
+        while attemp <= total_attemps:
+            if attemp > 1:
+                _LOGGER.info("Retry sending notification")
 
-            fallback_error = result.get("errorMessage", "Unknown error")
-            fallback_message = (
-                f"Internal server error, please try again later: {fallback_error}"
+            try:
+                await self._send_request(push_url, entry_data, target_data)
+                break
+            except asyncio.TimeoutError:
+                _LOGGER.error("Timeout sending notification to %s", push_url)
+            except aiohttp.ClientError as err:
+                _LOGGER.error("Error sending notification to %s: %r", push_url, err)
+
+            attemp += 1
+
+    async def _send_request(self, push_url, entry_data, target_data):
+        async with async_timeout.timeout(10):
+            response = await async_get_clientsession(self._hass).post(
+                push_url, json=target_data
             )
-            message = result.get("message", fallback_message)
+            result = await response.json()
 
-            if "message" in result:
-                if message[-1] not in [".", "?", "!"]:
-                    message += "."
-                message += " This message is generated externally to Home Assistant."
+        if response.status in (
+            HTTPStatus.OK,
+            HTTPStatus.CREATED,
+            HTTPStatus.ACCEPTED,
+        ):
+            log_rate_limits(self.hass, entry_data[ATTR_DEVICE_NAME], result)
+            return
 
-            if response.status == HTTPStatus.TOO_MANY_REQUESTS:
-                _LOGGER.warning(message)
-                log_rate_limits(
-                    self.hass, entry_data[ATTR_DEVICE_NAME], result, logging.WARNING
-                )
-            else:
-                _LOGGER.error(message)
+        fallback_error = result.get("errorMessage", "Unknown error")
+        fallback_message = (
+            f"Internal server error, please try again later: {fallback_error}"
+        )
+        message = result.get("message", fallback_message)
 
-        except asyncio.TimeoutError:
-            _LOGGER.error("Timeout sending notification to %s", push_url)
-        except aiohttp.ClientError as err:
-            _LOGGER.error("Error sending notification to %s: %r", push_url, err)
+        if "message" in result:
+            if message[-1] not in [".", "?", "!"]:
+                message += "."
+            message += " This message is generated externally to Home Assistant."
+
+        if response.status == HTTPStatus.TOO_MANY_REQUESTS:
+            _LOGGER.warning(message)
+            log_rate_limits(
+                self.hass, entry_data[ATTR_DEVICE_NAME], result, logging.WARNING
+            )
+        else:
+            _LOGGER.error(message)

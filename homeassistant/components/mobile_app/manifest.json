@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "domain": "mobile_app",
   "name": "Mobile App",
   "config_flow": true,
