@@ -1,7 +1,7 @@
 """Motor speed support for Xiaomi Mi Air Humidifier."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription
 from homeassistant.const import DEGREE, ENTITY_CATEGORY_CONFIG, TIME_MINUTES
@@ -38,6 +38,7 @@ from .const import (
     FEATURE_SET_MOTOR_SPEED,
     FEATURE_SET_OSCILLATION_ANGLE,
     FEATURE_SET_VOLUME,
+    FEATURE_SET_BUZZER_VOLUME,
     KEY_COORDINATOR,
     KEY_DEVICE,
     MODEL_AIRFRESH_VA2,
@@ -76,6 +77,7 @@ ATTR_LED_BRIGHTNESS_LEVEL = "led_brightness_level"
 ATTR_MOTOR_SPEED = "motor_speed"
 ATTR_OSCILLATION_ANGLE = "angle"
 ATTR_VOLUME = "volume"
+ATTR_BUZZER_VOLUME = "buzzer_volume"
 
 
 @dataclass
@@ -96,6 +98,19 @@ class OscillationAngleValues:
     max_value: float | None = None
     min_value: float | None = None
     step: float | None = None
+
+
+SET_VOLUME_NUMBER_DESCRIPTION = XiaomiMiioNumberDescription(
+    key=ATTR_VOLUME,
+    name="Volume",
+    icon="mdi:volume-high",
+    min_value=0,
+    max_value=100,
+    step=1,
+    method="async_set_volume",
+    entity_category=ENTITY_CATEGORY_CONFIG,
+)
+
 
 
 NUMBER_TYPES = {
@@ -131,15 +146,10 @@ NUMBER_TYPES = {
         method="async_set_fan_level",
         entity_category=ENTITY_CATEGORY_CONFIG,
     ),
-    FEATURE_SET_VOLUME: XiaomiMiioNumberDescription(
-        key=ATTR_VOLUME,
-        name="Volume",
-        icon="mdi:volume-high",
-        min_value=0,
-        max_value=100,
-        step=1,
-        method="async_set_volume",
-        entity_category=ENTITY_CATEGORY_CONFIG,
+    FEATURE_SET_VOLUME: SET_VOLUME_NUMBER_DESCRIPTION,
+    FEATURE_SET_BUZZER_VOLUME: replace(
+        SET_VOLUME_NUMBER_DESCRIPTION,
+        key=ATTR_BUZZER_VOLUME,
     ),
     FEATURE_SET_OSCILLATION_ANGLE: XiaomiMiioNumberDescription(
         key=ATTR_OSCILLATION_ANGLE,

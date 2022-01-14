@@ -76,7 +76,7 @@ from .gateway import ConnectXiaomiGateway
 _LOGGER = logging.getLogger(__name__)
 
 POLLING_TIMEOUT_SEC = 10
-UPDATE_INTERVAL = timedelta(seconds=15)
+UPDATE_INTERVAL = timedelta(seconds=30)
 
 GATEWAY_PLATFORMS = ["alarm_control_panel", "light", "sensor", "switch"]
 SWITCH_PLATFORMS = ["switch"]
