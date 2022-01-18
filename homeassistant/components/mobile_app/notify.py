@@ -148,10 +148,12 @@ class MobileAppNotificationService(BaseNotificationService):
 
         target_data["registration_info"] = reg_info
 
-        total_attemps = 2
+        total_attemps = 3
 
-        attemp = 1
+        attemp = 0
+        err = None
         while attemp <= total_attemps:
+            attemp += 1
             if attemp > 1:
                 _LOGGER.info("Retry sending notification")
 
@@ -162,8 +164,11 @@ class MobileAppNotificationService(BaseNotificationService):
                 _LOGGER.error("Timeout sending notification to %s", push_url)
             except aiohttp.ClientError as err:
                 _LOGGER.error("Error sending notification to %s: %r", push_url, err)
-
-            attemp += 1
+            except Exception as err:
+                _LOGGER.error("Failed sending notification to %s: %r", push_url, err)
+                break
+        else:
+            _LOGGER.error("Failed (Max retried) sending notification to %s: %r", push_url, err)
 
     async def _send_request(self, push_url, entry_data, target_data):
         async with async_timeout.timeout(10):
